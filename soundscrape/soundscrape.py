@@ -55,7 +55,9 @@ def main():
     parser.add_argument('-f', '--folders', action='store_true',
                         help='Organize saved songs in folders by artists')
     parser.add_argument('-o', '--open', action='store_true',
-                        help='Open downloaded files after downloading.')
+                        help='Open downloaded files after downloading')
+    parser.add_argument('-r', '--redownload', action='store_true',
+                        help='Download songs even if they already exist on the hard drive')
 
     args = parser.parse_args()
     vargs = vars(args)
@@ -130,7 +132,7 @@ def process_soundcloud(vargs):
         num_tracks = 1
     else:
         num_tracks = vargs['num_tracks']
-    filenames = download_tracks(client, tracks, num_tracks, vargs['downloadable'], vargs['folders'], id3_extras=id3_extras)
+    filenames = download_tracks(client, tracks, num_tracks, vargs['downloadable'], vargs['folders'], id3_extras=id3_extras, redownload=vargs['redownload'])
 
     if vargs['open']:
         open_files(filenames)
@@ -144,7 +146,7 @@ def get_client():
     return client
 
 
-def download_tracks(client, tracks, num_tracks=sys.maxsize, downloadable=False, folders=False, id3_extras={}):
+def download_tracks(client, tracks, num_tracks=sys.maxsize, downloadable=False, folders=False, id3_extras={}, redownload=False):
     """
     Given a list of tracks, iteratively download all of them.
 
@@ -195,10 +197,12 @@ def download_tracks(client, tracks, num_tracks=sys.maxsize, downloadable=False, 
                 directory = get_directory(folders, track_artist, album_name=None)
                 track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext="mp3")
 
-                # Skip if the song was already downloaded... EVEN IF the "folders" flag is NOT set
                 if exists(track_fullfilepath):
-                    puts(colored.yellow("Track already downloaded: ") + colored.white(track_title))
-                    continue
+                    if redownload:
+                        puts(colored.yellow("Marking track for redownload: ") + colored.white(track_title))
+                    else:
+                        puts(colored.yellow("Track already downloaded: ") + colored.white(track_title))
+                        continue
 
                 puts(colored.green("Downloading") + colored.white(": " + track['title']))
                 if track.get('direct', False):
@@ -241,7 +245,7 @@ def process_bandcamp(vargs):
     else:
         bc_url = 'https://' + artist_url + '.bandcamp.com/music'
 
-    filenames = scrape_bandcamp_url(bc_url, num_tracks=vargs['num_tracks'], folders=vargs['folders'])
+    filenames = scrape_bandcamp_url(bc_url, num_tracks=vargs['num_tracks'], folders=vargs['folders'], redownload=vargs['redownload'])
 
     # check if we have lists inside a list, which indicates the
     # scraping has gone recursive, so we must format the output
@@ -261,7 +265,7 @@ def process_bandcamp(vargs):
 
 
 # Largely borrowed from Ronier's bandcampscrape
-def scrape_bandcamp_url(url, num_tracks=sys.maxsize, folders=False):
+def scrape_bandcamp_url(url, num_tracks=sys.maxsize, folders=False, redownload=False):
     """
     Pull out artist and track info from a Bandcamp URL.
     """
@@ -273,7 +277,7 @@ def scrape_bandcamp_url(url, num_tracks=sys.maxsize, folders=False):
     # so we call the scrape_bandcamp_url() method for each one
     if type(album_data) is list:
         for album_url in album_data:
-            filenames.append(scrape_bandcamp_url(album_url, num_tracks, folders))
+            filenames.append(scrape_bandcamp_url(album_url, num_tracks, folders, redownload))
         return filenames
 
     artist = album_data["artist"]
@@ -294,12 +298,14 @@ def scrape_bandcamp_url(url, num_tracks=sys.maxsize, folders=False):
             else:
                 track_number = None
 
-            # Set the filepath accordingly
             path = get_path(folders, directory, track_name, track_number=track_number, file_ext="mp3")
-            # Skip if the song was already downloaded... EVEN IF the "folders" flag is NOT set
+
             if exists(path):
-                puts(colored.yellow("Track already downloaded: ") + colored.white(track_name))
-                continue
+                if redownload:
+                    puts(colored.yellow("Marking track for redownload: ") + colored.white(track_name))
+                else:
+                    puts(colored.yellow("Track already downloaded: ") + colored.white(track_name))
+                    continue
 
             if not track['file']:
                 puts(colored.yellow("Track unavailble for scraping: ") + colored.white(track_name))
@@ -388,7 +394,7 @@ def process_mixcloud(vargs):
     else:
         mc_url = 'https://mixcloud.com/' + artist_url
 
-    filenames = scrape_mixcloud_url(mc_url, num_tracks=vargs['num_tracks'], folders=vargs['folders'])
+    filenames = scrape_mixcloud_url(mc_url, num_tracks=vargs['num_tracks'], folders=vargs['folders'], redownload=vargs['redownload'])
 
     if vargs['open']:
         open_files(filenames)
@@ -396,7 +402,7 @@ def process_mixcloud(vargs):
     return
 
 
-def scrape_mixcloud_url(mc_url, num_tracks=sys.maxsize, folders=False):
+def scrape_mixcloud_url(mc_url, num_tracks=sys.maxsize, folders=False, redownload=False):
     """
 
     Returns filenames to open.
@@ -408,6 +414,7 @@ def scrape_mixcloud_url(mc_url, num_tracks=sys.maxsize, folders=False):
     except Exception as e:
         puts(colored.red("Problem downloading ") + mc_url)
         print(e)
+        return []
 
     filenames = []
 
@@ -416,10 +423,12 @@ def scrape_mixcloud_url(mc_url, num_tracks=sys.maxsize, folders=False):
     directory = get_directory(folders, track_artist, album_name=None)
     track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext=data['mp3_url'][-3:])
 
-    # Skip if the song was already downloaded... EVEN IF the "folders" flag is NOT set
     if exists(track_fullfilepath):
-        puts(colored.yellow("Skipping") + colored.white( ': ' + data['title'] + " - it already exists!"))
-        return []
+        if redownload:
+            puts(colored.yellow("Marking track for redownload: ") + colored.white(data['title']))
+        else:
+            puts(colored.yellow("Track already downloaded: ") + colored.white(data['title']))
+            return []
 
     puts(colored.green("Downloading") + colored.white(': ' +  data['artist'] + " - " + data['title'] + " (" + track_fullfilepath[-4:] + ")"))
     download_file(data['mp3_url'], track_fullfilepath)
@@ -501,7 +510,7 @@ def process_audiomack(vargs):
     else:
         mc_url = 'https://audiomack.com/' + artist_url
 
-    filenames = scrape_audiomack_url(mc_url, num_tracks=vargs['num_tracks'], folders=vargs['folders'])
+    filenames = scrape_audiomack_url(mc_url, num_tracks=vargs['num_tracks'], folders=vargs['folders'], redownload=vargs['redownload'])
 
     if vargs['open']:
         open_files(filenames)
@@ -509,7 +518,7 @@ def process_audiomack(vargs):
     return
 
 
-def scrape_audiomack_url(mc_url, num_tracks=sys.maxsize, folders=False):
+def scrape_audiomack_url(mc_url, num_tracks=sys.maxsize, folders=False, redownload=False):
     """
 
     Returns filenames to open.
@@ -521,6 +530,7 @@ def scrape_audiomack_url(mc_url, num_tracks=sys.maxsize, folders=False):
     except Exception as e:
         puts(colored.red("Problem downloading ") + mc_url)
         print(e)
+        return []
 
     filenames = []
 
@@ -529,10 +539,12 @@ def scrape_audiomack_url(mc_url, num_tracks=sys.maxsize, folders=False):
     directory = get_directory(folders, track_artist, album_name=None)
     track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext="mp3")
 
-    # Skip if the song was already downloaded... EVEN IF the "folders" flag is NOT set
     if exists(track_fullfilepath):
-        puts(colored.yellow("Skipping") + colored.white(': ' + data['title'] + " - it already exists!"))
-        return []
+        if redownload:
+            puts(colored.yellow("Marking track for redownload: ") + colored.white(data['title']))
+        else:
+            puts(colored.yellow("Track already downloaded: ") + colored.white(data['title']))
+            return []
 
     puts(colored.green("Downloading") + colored.white(': ' + data['artist'] + " - " + data['title']))
     download_file(data['mp3_url'], track_fullfilepath)
@@ -680,6 +692,7 @@ def get_directory(folders, artist, album_name=None):
         if not exists(directory):
             mkdir(directory)
     return directory
+
 
 def get_path(folders, directory, track_name, track_number=None, file_ext="mp3"):
     """
