@@ -35,7 +35,7 @@ def main():
     """
     parser = argparse.ArgumentParser(description='SoundScrape. Scrape an artist from SoundCloud.\n')
     parser.add_argument('artist_url', metavar='U', type=str,
-                   help='An artist\'s SoundCloud username or URL')
+                        help='An artist\'s SoundCloud username or URL')
     parser.add_argument('-n', '--num-tracks', type=int, default=sys.maxsize,
                         help='The number of tracks to download')
     parser.add_argument('-g', '--group', action='store_true',
@@ -104,7 +104,7 @@ def process_soundcloud(vargs):
     else:
         resolved = client.get('/resolve', url=artist_url, limit=200)
 
-    # This is is likely a 'likes' page.
+    # This is likely a 'likes' page.
     if not hasattr(resolved, 'kind'):
         tracks = resolved
     else:
@@ -159,7 +159,6 @@ def download_tracks(client, tracks, num_tracks=sys.maxsize, downloadable=False, 
         if isinstance(track, soundcloud.resource.Resource):
 
             try:
-
                 t_track = {}
                 t_track['downloadable'] = track.downloadable
                 t_track['streamable'] = track.streamable
@@ -193,14 +192,11 @@ def download_tracks(client, tracks, num_tracks=sys.maxsize, downloadable=False, 
             else:
                 track_artist = sanitize_filename(track['user']['username'])
                 track_title = sanitize_filename(track['title'])
-                track_filename = track_artist + ' - ' + track_title + '.mp3'
+                directory = get_directory(folders, track_artist, album_name=None)
+                track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext="mp3")
 
-                if folders:
-                    if not exists(track_artist):
-                        mkdir(track_artist)
-                    track_filename = join(track_artist, track_filename)
-
-                if exists(track_filename) and folders:
+                # Skip if the song was already downloaded... EVEN IF the "folders" flag is NOT set
+                if exists(track_fullfilepath):
                     puts(colored.yellow("Track already downloaded: ") + colored.white(track_title))
                     continue
 
@@ -214,7 +210,7 @@ def download_tracks(client, tracks, num_tracks=sys.maxsize, downloadable=False, 
                     else:
                         location = stream.url
 
-                path = download_file(location, track_filename)
+                path = download_file(location, track_fullfilepath)
                 tag_file(path,
                         artist=track['user']['username'],
                         title=track['title'],
@@ -283,14 +279,8 @@ def scrape_bandcamp_url(url, num_tracks=sys.maxsize, folders=False):
     artist = album_data["artist"]
     album_name = album_data["album_name"]
 
-    if folders:
-        if album_name:
-            directory = artist + " - " + album_name
-        else:
-            directory = artist
-        directory = sanitize_filename(directory)
-        if not exists(directory):
-            mkdir(directory)
+    # Set the target directory just once (out of the loop)
+    directory = get_directory(folders, artist, album_name=album_name)
 
     for i, track in enumerate(album_data["trackinfo"]):
 
@@ -303,15 +293,10 @@ def scrape_bandcamp_url(url, num_tracks=sys.maxsize, folders=False):
                 track_number = str(track["track_num"]).zfill(2)
             else:
                 track_number = None
-            if track_number and folders:
-                track_filename = '%s - %s.mp3' % (track_number, track_name)
-            else:
-                track_filename = '%s.mp3' % (track_name)
-            track_filename = sanitize_filename(track_filename)
-            if folders:
-                path = join(directory, track_filename)
-            else:
-                path = artist + ' - ' + track_filename
+
+            # Set the filepath accordingly
+            path = get_path(folders, directory, track_name, track_number=track_number, file_ext="mp3")
+            # Skip if the song was already downloaded... EVEN IF the "folders" flag is NOT set
             if exists(path):
                 puts(colored.yellow("Track already downloaded: ") + colored.white(track_name))
                 continue
@@ -423,32 +408,29 @@ def scrape_mixcloud_url(mc_url, num_tracks=sys.maxsize, folders=False):
     except Exception as e:
         puts(colored.red("Problem downloading ") + mc_url)
         print(e)
-        return []
 
     filenames = []
 
     track_artist = sanitize_filename(data['artist'])
     track_title = sanitize_filename(data['title'])
-    track_filename = track_artist + ' - ' + track_title + data['mp3_url'][-4:]
+    directory = get_directory(folders, track_artist, album_name=None)
+    track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext=data['mp3_url'][-3:])
 
-    if folders:
-        if not exists(track_artist):
-            mkdir(track_artist)
-        track_filename = join(track_artist, track_filename)
-        if exists(track_filename):
-            puts(colored.yellow("Skipping") + colored.white( ': ' + data['title'] + " - it already exists!"))
-            return []
+    # Skip if the song was already downloaded... EVEN IF the "folders" flag is NOT set
+    if exists(track_fullfilepath):
+        puts(colored.yellow("Skipping") + colored.white( ': ' + data['title'] + " - it already exists!"))
+        return []
 
-    puts(colored.green("Downloading") + colored.white(': ' +  data['artist'] + " - " + data['title'] + " (" + track_filename[-4:] + ")"))
-    download_file(data['mp3_url'], track_filename)
-    if track_filename[-4:] == '.mp3':
-        tag_file(track_filename,
+    puts(colored.green("Downloading") + colored.white(': ' +  data['artist'] + " - " + data['title'] + " (" + track_fullfilepath[-4:] + ")"))
+    download_file(data['mp3_url'], track_fullfilepath)
+    if track_fullfilepath[-4:] == '.mp3':
+        tag_file(track_fullfilepath,
                 artist=data['artist'],
                 title=data['title'],
                 year=data['year'],
                 genre="Mix",
                 artwork_url=data['artwork_url'])
-    filenames.append(track_filename)
+    filenames.append(track_fullfilepath)
 
     return filenames
 
@@ -544,25 +526,23 @@ def scrape_audiomack_url(mc_url, num_tracks=sys.maxsize, folders=False):
 
     track_artist = sanitize_filename(data['artist'])
     track_title = sanitize_filename(data['title'])
-    track_filename = track_artist + ' - ' + track_title + '.mp3'
+    directory = get_directory(folders, track_artist, album_name=None)
+    track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext="mp3")
 
-    if folders:
-        if not exists(track_artist):
-            mkdir(track_artist)
-        track_filename = join(track_artist, track_filename)
-        if exists(track_filename):
-            puts(colored.yellow("Skipping") + colored.white(': ' + data['title'] + " - it already exists!"))
-            return []
+    # Skip if the song was already downloaded... EVEN IF the "folders" flag is NOT set
+    if exists(track_fullfilepath):
+        puts(colored.yellow("Skipping") + colored.white(': ' + data['title'] + " - it already exists!"))
+        return []
 
     puts(colored.green("Downloading") + colored.white(': ' + data['artist'] + " - " + data['title']))
-    download_file(data['mp3_url'], track_filename)
-    tag_file(track_filename,
+    download_file(data['mp3_url'], track_fullfilepath)
+    tag_file(track_fullfilepath,
             artist=data['artist'],
             title=data['title'],
             year=data['year'],
             genre=None,
             artwork_url=data['artwork_url'])
-    filenames.append(track_filename)
+    filenames.append(track_fullfilepath)
 
     return filenames
 
@@ -685,6 +665,36 @@ def sanitize_filename(filename):
     """
     sanitized_filename = re.sub(r'[/\\:*?"<>|]', '-', filename)
     return sanitized_filename
+
+
+def get_directory(folders, artist, album_name=None):
+    """
+    Retrieve the sanitized directory (creating it if necessary).
+    """
+    if folders:
+        if album_name:
+            directory = artist + " - " + album_name
+        else:
+            directory = artist
+        directory = sanitize_filename(directory)
+        if not exists(directory):
+            mkdir(directory)
+    return directory
+
+def get_path(folders, directory, track_name, track_number=None, file_ext="mp3"):
+    """
+    Retrieve the full sanitized filepath to save the given track.
+    """
+    if track_number and folders:
+        track_filepath = '%s - %s.%s' % (track_number, track_name, file_ext)
+    else:
+        track_filepath = '%s.%s' % (track_name, file_ext)
+    track_filepath = sanitize_filename(track_filepath)
+    if folders:
+        path = join(directory, track_filepath)
+    else:
+        path = artist + ' - ' + track_filepath
+    return path
 
 ####################################################################
 # Main
