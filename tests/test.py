@@ -34,7 +34,7 @@ class TestSoundscrape(unittest.TestCase):
            os.unlink(f)
 
         mp3_count = len(glob.glob1('', "*.mp3"))
-        vargs = {'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://soundcloud.com/bxsswxrshp/the-king-is-dead-and-i-couldnt-be-happier'}
+        vargs = {'redownload': False, 'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://soundcloud.com/bxsswxrshp/the-king-is-dead-and-i-couldnt-be-happier'}
         process_soundcloud(vargs)
         new_mp3_count = len(glob.glob1('', "*.mp3"))
         self.assertTrue(new_mp3_count > mp3_count)
@@ -47,7 +47,7 @@ class TestSoundscrape(unittest.TestCase):
            os.unlink(f)
 
         mp3_count = len(glob.glob1('', "*.mp3"))
-        vargs = {'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://atenrays.bandcamp.com/track/who-u-think'}
+        vargs = {'redownload': False, 'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://atenrays.bandcamp.com/track/who-u-think'}
         process_bandcamp(vargs)
         new_mp3_count = len(glob.glob1('', "*.mp3"))
         self.assertTrue(new_mp3_count > mp3_count)
@@ -60,7 +60,7 @@ class TestSoundscrape(unittest.TestCase):
            os.unlink(f)
 
         mp3_count = len(glob.glob1('', "*.mp3"))
-        vargs = {'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://defill.bandcamp.com/track/amnesia-chamber-harvest-skit'}
+        vargs = {'redownload': False, 'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://defill.bandcamp.com/track/amnesia-chamber-harvest-skit'}
         process_bandcamp(vargs)
         new_mp3_count = len(glob.glob1('', "*.mp3"))
         self.assertTrue(new_mp3_count > mp3_count)
@@ -79,7 +79,7 @@ class TestSoundscrape(unittest.TestCase):
         # shortest mix I could find that was still semi tolerable
         mp3_count = len(glob.glob1('', "*.mp3"))
         m4a_count = len(glob.glob1('', "*.m4a"))
-        vargs = {'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://www.mixcloud.com/Bobby_T_FS15/coffee-cigarettes-saturday-morning-hip-hop-fix/'}
+        vargs = {'redownload': False, 'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://www.mixcloud.com/Bobby_T_FS15/coffee-cigarettes-saturday-morning-hip-hop-fix/'}
         process_mixcloud(vargs)
         new_mp3_count = len(glob.glob1('', "*.mp3"))
         new_m4a_count = len(glob.glob1('', "*.m4a"))
@@ -96,7 +96,7 @@ class TestSoundscrape(unittest.TestCase):
            os.unlink(f)
 
         mp3_count = len(glob.glob1('', "*.mp3"))
-        vargs = {'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'audiomack': True, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://www.audiomack.com/song/bottomfeedermusic/power'}
+        vargs = {'redownload': False, 'folders': False, 'group': False, 'track': '', 'num_tracks': 9223372036854775807, 'bandcamp': False, 'audiomack': True, 'downloadable': False, 'likes': False, 'open': False, 'artist_url': 'https://www.audiomack.com/song/bottomfeedermusic/power'}
         process_audiomack(vargs)
         new_mp3_count = len(glob.glob1('', "*.mp3"))
         self.assertTrue(new_mp3_count > mp3_count)
