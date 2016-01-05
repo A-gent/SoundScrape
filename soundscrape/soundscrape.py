@@ -197,14 +197,15 @@ def download_tracks(client, tracks, num_tracks=sys.maxsize, downloadable=False, 
                 directory = get_directory(folders, track_artist, album_name=None)
                 track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext="mp3")
 
+                download_text = colored.green("Downloading")
                 if exists(track_fullfilepath):
                     if redownload:
-                        puts(colored.yellow("Marking track for redownload: ") + colored.white(track_title))
+                        download_text = colored.yelow("Redownloading")
                     else:
                         puts(colored.yellow("Track already downloaded: ") + colored.white(track_title))
                         continue
 
-                puts(colored.green("Downloading") + colored.white(": " + track['title']))
+                puts(download_text + colored.white(": " + track['title']))
                 if track.get('direct', False):
                     location = track['stream_url']
                 else:
@@ -292,26 +293,30 @@ def scrape_bandcamp_url(url, num_tracks=sys.maxsize, folders=False, redownload=F
             continue
 
         try:
+
             track_name = track["title"]
-            if track["track_num"]:
-                track_number = str(track["track_num"]).zfill(2)
-            else:
-                track_number = None
-
-            path = get_path(folders, directory, track_name, track_number=track_number, file_ext="mp3")
-
-            if exists(path):
-                if redownload:
-                    puts(colored.yellow("Marking track for redownload: ") + colored.white(track_name))
-                else:
-                    puts(colored.yellow("Track already downloaded: ") + colored.white(track_name))
-                    continue
 
             if not track['file']:
                 puts(colored.yellow("Track unavailble for scraping: ") + colored.white(track_name))
                 continue
 
-            puts(colored.green("Downloading") + colored.white(": " + track_name))
+            if track["track_num"]:
+                track_number = str(track["track_num"]).zfill(2)
+            else:
+                track_number = None
+
+            download_text = colored.green("Downloading")
+
+            path = get_path(folders, directory, track_name, track_number=track_number, file_ext="mp3")
+
+            if exists(path):
+                if redownload:
+                    download_text = colored.yellow("Redownloading")
+                else:
+                    puts(colored.yellow("Track already downloaded: ") + colored.white(track_name))
+                    continue
+
+            puts(download_text + colored.white(": " + track_name))
             path = download_file(track['file']['mp3-128'], path)
 
             album_year = album_data['album_release_date']
@@ -423,14 +428,15 @@ def scrape_mixcloud_url(mc_url, num_tracks=sys.maxsize, folders=False, redownloa
     directory = get_directory(folders, track_artist, album_name=None)
     track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext=data['mp3_url'][-3:])
 
+    download_text = colored.green("Downloading")
     if exists(track_fullfilepath):
         if redownload:
-            puts(colored.yellow("Marking track for redownload: ") + colored.white(data['title']))
+            download_text = colored.yellow("Redownloading")
         else:
             puts(colored.yellow("Track already downloaded: ") + colored.white(data['title']))
             return []
 
-    puts(colored.green("Downloading") + colored.white(': ' +  data['artist'] + " - " + data['title'] + " (" + track_fullfilepath[-4:] + ")"))
+    puts(download_text + colored.white(': ' +  data['artist'] + " - " + data['title'] + " (" + track_fullfilepath[-4:] + ")"))
     download_file(data['mp3_url'], track_fullfilepath)
     if track_fullfilepath[-4:] == '.mp3':
         tag_file(track_fullfilepath,
@@ -539,14 +545,15 @@ def scrape_audiomack_url(mc_url, num_tracks=sys.maxsize, folders=False, redownlo
     directory = get_directory(folders, track_artist, album_name=None)
     track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext="mp3")
 
+    download_text = colored.green("Downloading")
     if exists(track_fullfilepath):
         if redownload:
-            puts(colored.yellow("Marking track for redownload: ") + colored.white(data['title']))
+            download_text = colored.yellow("Redownloading")
         else:
             puts(colored.yellow("Track already downloaded: ") + colored.white(data['title']))
             return []
 
-    puts(colored.green("Downloading") + colored.white(': ' + data['artist'] + " - " + data['title']))
+    puts(download_text + colored.white(': ' + data['artist'] + " - " + data['title']))
     download_file(data['mp3_url'], track_fullfilepath)
     tag_file(track_fullfilepath,
             artist=data['artist'],
