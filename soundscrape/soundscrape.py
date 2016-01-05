@@ -690,6 +690,7 @@ def get_directory(folders, artist, album_name=None):
     """
     Retrieve the sanitized directory (creating it if necessary).
     """
+    directory = ""
     if folders:
         if album_name:
             directory = artist + " - " + album_name
@@ -705,6 +706,7 @@ def get_path(folders, directory, track_name, track_number=None, file_ext="mp3"):
     """
     Retrieve the full sanitized filepath to save the given track.
     """
+    path = ""
     if track_number and folders:
         track_filepath = '%s - %s.%s' % (track_number, track_name, file_ext)
     else:
