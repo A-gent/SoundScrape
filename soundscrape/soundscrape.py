@@ -194,8 +194,7 @@ def download_tracks(client, tracks, num_tracks=sys.maxsize, downloadable=False, 
             else:
                 track_artist = sanitize_filename(track['user']['username'])
                 track_title = sanitize_filename(track['title'])
-                directory = get_directory(folders, track_artist, album_name=None)
-                track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext="mp3")
+                track_fullfilepath = get_path(folders, track_artist, track_title, album_name=None, track_number=None, file_ext="mp3")
 
                 download_text = colored.green("Downloading")
                 if exists(track_fullfilepath):
@@ -284,9 +283,6 @@ def scrape_bandcamp_url(url, num_tracks=sys.maxsize, folders=False, redownload=F
     artist = album_data["artist"]
     album_name = album_data["album_name"]
 
-    # Set the target directory just once (out of the loop)
-    directory = get_directory(folders, artist, album_name=album_name)
-
     for i, track in enumerate(album_data["trackinfo"]):
 
         if i > num_tracks - 1:
@@ -307,7 +303,7 @@ def scrape_bandcamp_url(url, num_tracks=sys.maxsize, folders=False, redownload=F
 
             download_text = colored.green("Downloading")
 
-            path = get_path(folders, directory, track_name, track_number=track_number, file_ext="mp3")
+            path = get_path(folders, artist, track_name, album_name=album_name, track_number=track_number, file_ext="mp3")
 
             if exists(path):
                 if redownload:
@@ -425,8 +421,7 @@ def scrape_mixcloud_url(mc_url, num_tracks=sys.maxsize, folders=False, redownloa
 
     track_artist = sanitize_filename(data['artist'])
     track_title = sanitize_filename(data['title'])
-    directory = get_directory(folders, track_artist, album_name=None)
-    track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext=data['mp3_url'][-3:])
+    track_fullfilepath = get_path(folders, track_artist, track_title, album_name=None, track_number=None, file_ext=data['mp3_url'][-3:])
 
     download_text = colored.green("Downloading")
     if exists(track_fullfilepath):
@@ -542,8 +537,7 @@ def scrape_audiomack_url(mc_url, num_tracks=sys.maxsize, folders=False, redownlo
 
     track_artist = sanitize_filename(data['artist'])
     track_title = sanitize_filename(data['title'])
-    directory = get_directory(folders, track_artist, album_name=None)
-    track_fullfilepath = get_path(folders, directory, track_title, track_number=None, file_ext="mp3")
+    track_fullfilepath = get_path(folders, track_artist, track_title, album_name=None, track_number=None, file_ext="mp3")
 
     download_text = colored.green("Downloading")
     if exists(track_fullfilepath):
@@ -686,36 +680,27 @@ def sanitize_filename(filename):
     return sanitized_filename
 
 
-def get_directory(folders, artist, album_name=None):
-    """
-    Retrieve the sanitized directory (creating it if necessary).
-    """
-    directory = ""
-    if folders:
-        if album_name:
-            directory = artist + " - " + album_name
-        else:
-            directory = artist
-        directory = sanitize_filename(directory)
-        if not exists(directory):
-            mkdir(directory)
-    return directory
-
-
-def get_path(folders, directory, track_name, track_number=None, file_ext="mp3"):
+def get_path(folders, artist_name, track_name, album_name=None, track_number=None, file_ext="mp3"):
     """
     Retrieve the full sanitized filepath to save the given track.
+    This method creates any necessary directories.
     """
-    path = ""
     if track_number and folders:
-        track_filepath = '%s - %s.%s' % (track_number, track_name, file_ext)
+        filename = '%s - %s.%s' % (track_number, track_name, file_ext)
     else:
-        track_filepath = '%s.%s' % (track_name, file_ext)
-    track_filepath = sanitize_filename(track_filepath)
+        filename = '%s.%s' % (track_name, file_ext)
+    filename = sanitize_filename(filename)
+    artist_name = sanitize_filename(artist_name)
     if folders:
-        path = join(directory, track_filepath)
+        if album_name:
+            directory = artist_name + " - " + sanitize_filename(album_name)
+        else:
+            directory = artist_name
+        if not exists(directory):
+            mkdir(directory)
+        path = join(directory, filename)
     else:
-        path = artist + ' - ' + track_filepath
+        path = artist_name + ' - ' + filename
     return path
 
 ####################################################################
